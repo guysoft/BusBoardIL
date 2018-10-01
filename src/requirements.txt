@@ -1,0 +1,13 @@
+pytz
+python-dateutil
+requests
+Flask
+flask-bootstrap
+wtforms
+sqlalchemy
+werkzeug
+flask-login
+flask-bootstrap
+flask-sqlalchemy
+flask_wtf
+mysql-connector-python-rf

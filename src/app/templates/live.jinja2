@@ -1,0 +1,37 @@
+{% extends "bootstrap/base.html" %}
+{% block title %}Buses Dashboard{% endblock %}
+{% block content %}
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+    <link rel="stylesheet" href="https://ajax.googleapis.com/ajax/libs/jqueryui/1.12.1/themes/smoothness/jquery-ui.css">
+<script src="https://ajax.googleapis.com/ajax/libs/jqueryui/1.12.1/jquery-ui.min.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/tabulator/3.5.3/css/tabulator.min.css" rel="stylesheet">
+<script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/tabulator/3.5.3/js/tabulator.min.js"></script>
+
+
+
+    <div class="container-fluid">
+        <h1>Upcoming buses</h1><br/>
+<div id="example-table"></div>
+
+
+            <script type="text/javascript">
+    //create Tabulator on DOM element with id "example-table"
+//Build Tabulator
+$("#example-table").tabulator({
+    height:"311px",
+    layout:"fitColumns",
+    placeholder:"No Data Set",
+});
+
+//trigger AJAX load on "Load Data via AJAX" button click
+$("#example-table").tabulator("setData", "/ajax");
+$("#example-table").tabulator("setColumns", [
+        {title:"Name", field:"serviceHistory", sorter:"string", width:200},
+        {title:"Name", field:"name", sorter:"string", width:200},
+    ]);
+    </script>
+
+    <div id="messages"></div>
+    </div>
+{% endblock %}
+

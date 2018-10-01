@@ -1,0 +1,29 @@
+    <table class="table table-striped">
+    <tr>
+         {% for station_name, station in visiting_buses.items() %}
+             <td>
+
+             {{ station_name }}
+             <table id="for-chart" class="table table-striped" style="width: 100%;">
+            <thead class="thead-dark">
+                <tr>
+                    <th scope="col">line</th>
+                    <th scope="col">agency</th>
+                    <th scope="col">to</th>
+                    <th scope="col">eta</th>
+                </tr>
+            </thead>
+             <tbody>
+            {% for visit in station %}
+                <tr>
+                <td>{{ visit["line_name"] }}</td>
+                    <td>{{ visit["static_info"]["route"]["agency"]["name"]["HE"] }}</td>
+                    <td>{{ visit["static_info"]["route"]["destination"]["name"]["HE"] }}</td>
+                    <td>{{ visit["eta_min"] }} minutes</td>
+                </tr>
+            {% endfor %}
+             </tbody>
+             </table>
+             </td>
+         {% endfor %}
+    </tr></table>

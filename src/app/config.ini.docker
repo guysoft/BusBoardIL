@@ -1,0 +1,14 @@
+[main]
+url=https://curlbus.app
+
+[webserver]
+port=80
+init_password=1234
+
+[db]
+host=127.0.0.1
+port=3306
+user=busboardil
+password=busboardil
+db_name=busboardil
+

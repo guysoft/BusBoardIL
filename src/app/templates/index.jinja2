@@ -1,0 +1,55 @@
+{% extends "bootstrap/base.html" %}
+{% block title %}Buses Dashboard{% endblock %}
+{% block content %}
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.1/jquery.min.js"></script>
+
+
+    <div class="container-fluid">
+        <h1>Upcoming buses</h1><br/>
+        <div id="container"></div>
+    <div id="messages"></div>
+    </div>
+
+    <script>
+
+        var getUrlParameter = function getUrlParameter(sParam) {
+            var sPageURL = decodeURIComponent(window.location.search.substring(1)),
+                sURLVariables = sPageURL.split('&'),
+                sParameterName,
+                i;
+
+            for (i = 0; i < sURLVariables.length; i++) {
+                sParameterName = sURLVariables[i].split('=');
+
+                if (sParameterName[0] === sParam) {
+                    return sParameterName[1] === undefined ? true : sParameterName[1];
+                }
+            }
+        };
+
+
+    function load_buses(lat, lon)
+    {
+        //$.ajax("{{ url_for('test') }}").done(function (reply) {
+
+        $.ajax("{{ url_for('buses')}}?lat=" + lat + "&lon=" + lon).done(function (reply) {
+            $('#container').html(reply);
+        });
+    }
+
+    $(document).ready(function () {
+
+        var lat = getUrlParameter("lat");
+        var lon = getUrlParameter("lon");
+
+        if (lat == undefined || lon == undefined ){
+            alert("Please set lon and lat variables in the url");
+        }
+        load_buses(lat, lon);
+
+        setInterval(load_buses(lat, lon, 60 * 1000));
+    });
+    </script>
+
+{% endblock %}
+
