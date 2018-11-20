@@ -41,8 +41,18 @@ Edit config.ini to include access to a mariadb instance db.
 
 Install using docker
 ~~~~~~~~~~~~~~~~~~~~
-    
-* TODO
 
+Build status: 
+
+.. image:: https://dockerbuildbadges.quelltext.eu/status.svg?organization=guysoft&repository=busboardil
+.. :alt: Build Status
+
+
+Instrutions::
+
+    wget https://github.com/guysoft/BusBoardIL/blob/master/src/docker-compose.yml
+    docker-compose up -d
+
+Then get the IP fron docker inspect and access port 80
 
 Code contributions are loved!
