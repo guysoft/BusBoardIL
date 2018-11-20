@@ -1,8 +1,7 @@
+FROM tiangolo/uwsgi-nginx-flask:python3.6-alpine3.7
 MAINTAINER Guy Sheffer <guysoft at gmail dot com>
 
 EXPOSE 80
-
-FROM tiangolo/uwsgi-nginx-flask:python3.6-alpine3.7
 
 COPY ./app /app
 COPY ./app/config.ini.docker /app/config.ini
