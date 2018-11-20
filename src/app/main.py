@@ -1,28 +1,26 @@
 """
-Webserver display upcoming busses
+Webserver display upcoming buses
 """
 import os
 import sys
-from io import BytesIO
 from wtforms import StringField, PasswordField, BooleanField
 from wtforms.validators import InputRequired, Length
 from werkzeug.security import generate_password_hash, check_password_hash
-from flask import Flask, render_template, after_this_request, request, Response, redirect, url_for, abort, jsonify
+from flask import Flask, render_template, request, Response, redirect, jsonify
 from flask_login import LoginManager, UserMixin, login_required, login_user, logout_user
 from flask_bootstrap import Bootstrap
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy import create_engine
 from flask_wtf import FlaskForm
-import gzip
 import json
-import functools
 import requests
 from datetime import datetime, timezone
 import dateutil.parser
 import pytz
 from sqlalchemy.ext.declarative import declarative_base
-
+from collections import OrderedDict
+import time
 
 SECRET_LENGTH = 24
 
@@ -31,6 +29,11 @@ from common import get_config, get_uri
 
 
 debug = 'DEBUG' in os.environ and os.environ['DEBUG'] == "on"
+debug_with_cache = 'DEBUG_WITH_CACHE' in os.environ and os.environ['DEBUG_WITH_CACHE'] == "on"
+CACHE_PATH = os.path.join(os.path.dirname(__file__), "cache")
+
+if debug_with_cache:
+    os.system("mkdir -p '" + CACHE_PATH + "'")
 
 
 app = Flask("Bus dashbaord", template_folder=os.path.join(os.path.dirname(__file__), "templates"))
@@ -130,26 +133,49 @@ class LoginForm(FlaskForm):
     remember = BooleanField('remember me')
 
 
-def get_dashboard_data(lon, lat):
+def cache_get(url, params=None):
     headers = {"Accept": "application/json"}
 
-    # stations = [25372, 25373, 25374, 25376, 27035, 20802, 28613, 20389, 25325, 25380, 20388, 20386, 21480, 21499, 25381, 25324, 21586]
+    if debug_with_cache:
+        if params is not None:
+            hash = url + str(OrderedDict(sorted(params.items())))
+        else:
+            hash = url
+        cache_path = os.path.join(CACHE_PATH, hash.replace("/","") + ".json")
 
-    url = "https://curlbus.app/nearby"
-    response = requests.get(url, headers=headers, params={"lat": str(lat),
-                                                          "lon": str(lon),
-                                                          "radius": "500"})
-    # print({"lat": str(lon), "lon": str(lat), "radius": "500"})
-    # response = requests.get(url, headers=headers, params={"lat": "32.0521843",
-    #                                                       "lon": "34.76772529999994",
-    #                                                       "radius": "500"})
-    #response = requests.get(url, headers=headers, params={"lat": "31.7829908",
-    #                                                       "lon": "35.211215700000025",
-    #                                                      "radius": "500"})
+        if os.path.isfile(cache_path):
+            return json.load(open(cache_path))
+
+    # Else we need to pull and save
+
+    if params is not None:
+        response = requests.get(url, headers=headers, params=params)
+
+    else:
+        response = requests.get(url, headers=headers)
 
     try:
-        stations_data = response.json()
+        data = response.json()
+
+        if debug_with_cache:
+            json.dump(data, open(cache_path, "w"))
+
+        return data
     except:
+        print("Fail to do request")
+        return
+
+
+def has_numbers(input):
+    return any(char.isdigit() for char in input)
+
+def get_dashboard_data(lon, lat):
+
+    stations_data = cache_get("https://curlbus.app/nearby",  {"lat": str(lat),
+                                                          "lon": str(lon),
+                                                          "radius": "500"})
+
+    if stations_data is None:
         return
 
     stations = {}
@@ -162,8 +188,10 @@ def get_dashboard_data(lon, lat):
 
     for station in stations.keys():
         url = "https://curlbus.app/" + str(station)
-        response = requests.get(url, headers=headers)
-        data = response.json()
+        data = cache_get(url)
+
+        print(station)
+        print(data["stop_info"])
 
         # Take each visit and add to it static information to display about it
         for i, visit in enumerate(data["visits"][str(station)]):
@@ -201,7 +229,6 @@ def get_dashboard_data(lon, lat):
             first_insert = False
             if make_line_id(visit) not in groupped_lines_ids.keys():
                 first_insert = True
-                print(make_line_id(visit))
                 groupped_lines_ids[make_line_id(visit)] = len(groupped_lines)
                 groupped_lines.append(visit)
             # Now we have a visit, and the id of the line it represents
@@ -209,7 +236,6 @@ def get_dashboard_data(lon, lat):
 
             if stations[visit["stop_id"]]["distance"] < stations[groupped_lines[stored_id]["stop_id"]]["distance"]:
                 # This is the same line and is coming from a closer station, trash all we did and use this station
-                print(stored_id)
                 groupped_lines[stored_id] = visit
             elif visit["stop_id"] == groupped_lines[stored_id]["stop_id"] and not first_insert:
                 groupped_lines[stored_id]["eta_min"] += visit["eta_min"]
@@ -222,7 +248,10 @@ def get_dashboard_data(lon, lat):
     # Now lets group by station
     grouped_stations = {}
     for visit in groupped_lines:
-        key = visit["stop_street"]
+        if has_numbers(visit["stop_street"]):
+            key = visit["stop_street"]
+        else:
+            key = visit["stop_name"] + ", " +  visit["stop_street"] + " (" + visit["stop_id"] + ")"
         # visit["static_info"]["route"]["destination"]["name"]["HE"] + " - " + visit["stop_street"]
         if key not in grouped_stations:
             grouped_stations[key] = []
@@ -248,6 +277,7 @@ def buses():
     grouped_stations = get_dashboard_data(lon, lat)
     return render_template("busses.jinja2", visiting_buses=grouped_stations)
 
+
 @app.route("/")
 def root():
     return render_template("index.jinja2")
@@ -272,7 +302,6 @@ def login():
 
     return render_template('login.jinja2', form=form)
 
-import time
 @app.route('/test', methods=['GET', 'POST'])
 def test():
     return str(time.time())
