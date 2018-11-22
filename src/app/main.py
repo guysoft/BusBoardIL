@@ -21,6 +21,7 @@ import pytz
 from sqlalchemy.ext.declarative import declarative_base
 from collections import OrderedDict
 import time
+from joblib import Parallel, delayed
 
 SECRET_LENGTH = 24
 
@@ -169,6 +170,24 @@ def cache_get(url, params=None):
 def has_numbers(input):
     return any(char.isdigit() for char in input)
 
+
+def get_visiting_busses(station):
+    url = "https://curlbus.app/" + str(station)
+    data = cache_get(url)
+
+    print(station)
+    print(data["stop_info"])
+
+    # Take each visit and add to it static information to display about it
+    for i, visit in enumerate(data["visits"][str(station)]):
+        data["visits"][str(station)][i]["stop_name"] = data["stop_info"]["name"]["HE"]
+        data["visits"][str(station)][i]["stop_id"] = station
+        data["visits"][str(station)][i]["stop_street"] = data["stop_info"]["address"]["street"]
+        data["visits"][str(station)][i]["location"] = data["stop_info"]["location"]
+
+    return data["visits"][str(station)]
+
+
 def get_dashboard_data(lon, lat):
 
     stations_data = cache_get("https://curlbus.app/nearby",  {"lat": str(lat),
@@ -186,21 +205,11 @@ def get_dashboard_data(lon, lat):
 
     print("stations: " + str(len(stations)))
 
-    for station in stations.keys():
-        url = "https://curlbus.app/" + str(station)
-        data = cache_get(url)
+    visits_groups = Parallel(n_jobs=50, backend="threading")(delayed(get_visiting_busses)(station) for station in stations.keys())
+    print(visiting_buses)
 
-        print(station)
-        print(data["stop_info"])
-
-        # Take each visit and add to it static information to display about it
-        for i, visit in enumerate(data["visits"][str(station)]):
-            data["visits"][str(station)][i]["stop_name"] = data["stop_info"]["name"]["HE"]
-            data["visits"][str(station)][i]["stop_id"] = station
-            data["visits"][str(station)][i]["stop_street"] = data["stop_info"]["address"]["street"]
-            data["visits"][str(station)][i]["location"] = data["stop_info"]["location"]
-
-        visiting_buses += data["visits"][str(station)]
+    for visits_group in visits_groups:
+        visiting_buses += visits_group
 
     # We got all the data, now lets format it
 
