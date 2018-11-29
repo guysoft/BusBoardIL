@@ -60,6 +60,9 @@ login_manager.login_view = "login"
 login_manager.init_app(app)
 Bootstrap(app)
 
+settings = get_config()
+curlbus_url = settings["main"]["url"]
+
 
 class User(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -172,7 +175,7 @@ def has_numbers(input):
 
 
 def get_visiting_busses(station):
-    url = "https://curlbus.app/" + str(station)
+    url = curlbus_url + "/" + str(station)
     data = cache_get(url)
 
     print(station)
@@ -190,7 +193,7 @@ def get_visiting_busses(station):
 
 def get_dashboard_data(lon, lat):
 
-    stations_data = cache_get("https://curlbus.app/nearby",  {"lat": str(lat),
+    stations_data = cache_get(curlbus_url + "/nearby",  {"lat": str(lat),
                                                           "lon": str(lon),
                                                           "radius": "500"})
 
